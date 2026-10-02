@@ -35,6 +35,23 @@ nixpkgs.overlays = [ inputs.cf-cli-nix.overlays.default ];
 
 Both `cf` and `cloudflare` are installed as commands.
 
+## Updating the package
+
+Requires Python 3, npm (Node.js 22+), and Nix with flakes enabled. The updater follows npm's `latest` dist-tag, including prereleases published to that tag.
+
+```sh
+python3 scripts/update.py --check
+python3 scripts/update.py
+# Or select an exact upstream version:
+python3 scripts/update.py --version 1.0.0-beta.12
+nix build .#cf-cli
+python3 scripts/smoke-test.py result
+```
+
+Check mode returns 0 when current, 1 when an update is available, and 2 on errors. It does not edit files. The updater verifies npm's tarball integrity, resolves runtime dependencies with install scripts disabled, and computes the dependency hash using the prefetcher from our pinned nixpkgs. It updates `package.nix` and `package-lock.json` only after fetching and hashing succeeds. Package validation is a separate required step.
+
+Scheduled updates, automatic merges, binary caching, and version tags are not enabled yet.
+
 ## Build and test
 
 ```sh
