@@ -30,7 +30,10 @@ def require_server_merge_guard(repo):
         rule = api(f"repos/{repo}/rulesets/{summary['id']}")
         refs = rule.get("conditions", {}).get("ref_name", {})
         if (rule.get("enforcement") != "active" or rule.get("target") != "branch"
-                or rule.get("bypass_actors") != []
+                # GitHub omits bypass_actors for non-admin tokens. The empty
+                # bypass list is configured and verified by the maintainer;
+                # reject any bypasses when GitHub exposes them to this token.
+                or rule.get("bypass_actors", []) != []
                 or refs.get("include") != ["refs/heads/main"] or refs.get("exclude") != []):
             continue
         for check in rule.get("rules", []):

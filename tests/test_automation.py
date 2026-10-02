@@ -35,6 +35,10 @@ class MergeGuards(unittest.TestCase):
         summary = [{"id": 1, "name": rule["name"]}]
         with patch.object(merge, "api", side_effect=[summary, rule]):
             merge.require_server_merge_guard("owner/repo")
+        hidden_bypass = copy.deepcopy(rule)
+        hidden_bypass.pop("bypass_actors")  # GitHub hides this from non-admin tokens.
+        with patch.object(merge, "api", side_effect=[summary, hidden_bypass]):
+            merge.require_server_merge_guard("owner/repo")
         weak = copy.deepcopy(rule)
         weak["rules"][0]["parameters"]["strict_required_status_checks_policy"] = False
         bypass = copy.deepcopy(rule)
