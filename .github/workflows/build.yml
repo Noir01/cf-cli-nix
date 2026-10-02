@@ -33,6 +33,11 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+      - name: Enable public cache (read-only)
+        uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: cf-cli
+          skipPush: true
       - name: Test automation merge guards
         run: python3 -m unittest discover -s tests -v
       - name: Evaluate flake outputs
@@ -45,6 +50,18 @@ jobs:
         run: |
           nix run . -- --version
           nix run .#cloudflare -- --version
+      - name: Publish smoke-tested output to Cachix
+        if: >-
+          github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: |
+          test -n "$CACHIX_AUTH_TOKEN"
+          OUTPUT=$(python3 -c 'import os; print(os.path.realpath("result"))')
+          cachix push cf-cli "$OUTPUT"
+          HASH=$(basename "$OUTPUT" | cut -d- -f1)
+          curl --fail --retry 5 --retry-delay 2 "https://cf-cli.cachix.org/$HASH.narinfo"
 
   tag:
     needs: build
@@ -62,4 +79,4 @@ jobs:
       - name: Publish fixed tag for the exact tested commit
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/tag-version.py --repo "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA"
+        run: python3 scripts/tag-version.py --repo "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA" --keep-existing

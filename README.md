@@ -35,6 +35,28 @@ nixpkgs.overlays = [ inputs.cf-cli-nix.overlays.default ];
 
 Both `cf` and `cloudflare` are installed as commands.
 
+## Binary cache
+
+The public cache is [`cf-cli`](https://app.cachix.org/cache/cf-cli). Enable it before installing to reuse published builds:
+
+```sh
+cachix use cf-cli
+nix run github:Noir01/cf-cli-nix -- --version
+```
+
+For declarative NixOS configuration:
+
+```nix
+nix.settings = {
+  extra-substituters = [ "https://cf-cli.cachix.org" ];
+  extra-trusted-public-keys = [
+    "cf-cli.cachix.org-1:CD9hXEjchmA92ng/Q14oPwS6WxTwWGzp2P+EGgJjlmU="
+  ];
+};
+```
+
+CI uses the public cache read-only for PRs. On `main`, each native platform job explicitly uploads its output only after its smoke tests pass, then checks the exact store path's public cache metadata. The cache write token is exposed only to that upload step, never to PR builds. Tag publication waits for all platform jobs, including uploads, to succeed. Missing cached builds fall back to normal local builds. Cache publication becomes active when the workflow changes are merged and main CI succeeds.
+
 ## Updating the package
 
 Requires Python 3, npm (Node.js 22+), and Nix with flakes enabled. The updater follows npm's `latest` dist-tag, including prereleases published to that tag.
@@ -60,7 +82,7 @@ To exercise the pipeline without merging, manually run the **Update cf** workflo
 
 ## Version tags
 
-After all three platform builds and smoke tests pass on `main`, CI publishes a fixed tag such as `v1.0.0-beta.12` on the exact tested commit. Existing tags are never moved: reruns on the same commit are no-ops; attempts to reuse a version on another commit fail rather than overwrite history. These are lightweight Git refs pointing to signed commits, not separately signed annotated tags or GitHub Release pages. No moving `latest` or major-version tags are published.
+After all three platform builds and smoke tests pass on `main`, CI publishes a fixed tag such as `v1.0.0-beta.12` on the exact tested commit. Existing tags are never moved: later commits packaging the same version preserve the original release tag. The script's default strict mode still refuses a different target; CI uses `--keep-existing` to make routine documentation/workflow changes harmless. These are lightweight Git refs pointing to signed commits, not separately signed annotated tags or GitHub Release pages. No moving `latest` or major-version tags are published.
 
 Once a tag exists, select it explicitly:
 
@@ -70,7 +92,7 @@ nix run github:Noir01/cf-cli-nix/v1.0.0-beta.12 -- --version
 # inputs.cf-cli-nix.url = "github:Noir01/cf-cli-nix/v1.0.0-beta.12";
 ```
 
-Bot merges explicitly dispatch the main build workflow because `GITHUB_TOKEN` merges do not trigger normal push workflows. Tag publication waits for that merged commit's builds, rather than tagging the pre-merge PR candidate. Binary caching is not enabled yet.
+Bot merges explicitly dispatch the main build workflow because `GITHUB_TOKEN` merges do not trigger normal push workflows. Tag publication waits for that merged commit's builds and cache uploads, rather than tagging the pre-merge PR candidate.
 
 ## Build and test
 
