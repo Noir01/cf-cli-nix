@@ -20,6 +20,10 @@ class TagTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             MODULE["existing_tag_sha"](refs, "v1.0.0", "other")
 
+    def test_keep_existing_preserves_old_release_commit(self):
+        refs = [{"ref": "refs/tags/v1.0.0", "object": {"type": "commit", "sha": "old"}}]
+        self.assertTrue(MODULE["existing_tag_sha"](refs, "v1.0.0", "new", keep_existing=True))
+
     def test_prefix_is_not_exact_match(self):
         refs = [{"ref": "refs/tags/v1.0.0-beta.1", "object": {"type": "commit", "sha": "abc"}}]
         self.assertFalse(MODULE["existing_tag_sha"](refs, "v1.0.0", "abc"))
