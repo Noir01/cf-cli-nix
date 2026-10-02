@@ -8,6 +8,8 @@ import sys
 import tempfile
 
 package = Path(sys.argv[1]).resolve()
+lockfile = Path(__file__).resolve().parent.parent / "package-lock.json"
+expected_version = json.loads(lockfile.read_text())["version"]
 with tempfile.TemporaryDirectory(prefix="cf-smoke-", dir=os.environ.get("TMPDIR")) as home:
     env = {k: v for k, v in os.environ.items() if not k.startswith("CLOUDFLARE_")}
     env.update(HOME=home, XDG_CONFIG_HOME=home, CI="true")
@@ -19,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix="cf-smoke-", dir=os.environ.get("TMPDIR"
         return result.stdout
     for binary in ("cf", "cloudflare"):
         version = run(binary, "--version")
-        assert "1.0.0-beta.5" in version, version
+        assert expected_version in version, version
         print(f"PASS {binary} --version")
     help_text = run("cf", "--help")
     assert "Cloudflare" in help_text and "Commands" in help_text, help_text
