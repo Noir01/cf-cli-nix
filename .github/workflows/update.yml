@@ -110,6 +110,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -121,3 +122,8 @@ jobs:
           UPDATE_SHA: ${{ needs.prepare.outputs.sha }}
           UPDATE_BASE: ${{ needs.prepare.outputs.base }}
         run: python3 scripts/merge-update.py
+      # GITHUB_TOKEN merges do not trigger ordinary push workflows.
+      - name: Build and tag merged main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref main

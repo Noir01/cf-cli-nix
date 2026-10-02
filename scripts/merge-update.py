@@ -78,7 +78,9 @@ def main():
         latest = json.load(response)["version"]
     if version != latest:
         raise RuntimeError("Candidate is no longer npm latest")
-    subprocess.run(["gh", "pr", "merge", number, "--repo", repo, "--auto", "--squash",
+    # All checks must already pass. Do not schedule a later merge: the next
+    # workflow step must dispatch CI only after this merge has actually landed.
+    subprocess.run(["gh", "pr", "merge", number, "--repo", repo, "--squash",
                     "--match-head-commit", sha], check=True)
     result = api(f"repos/{repo}/pulls/{number}")
     if result["merged"]:
@@ -87,7 +89,7 @@ def main():
             raise RuntimeError("Merged commit signature is unverified")
         print(f"Merged signed commit {result['merge_commit_sha']}")
     else:
-        print("Auto-merge requested; merge is still pending")
+        raise RuntimeError("PR is not merged; refusing post-merge CI dispatch")
 
 
 if __name__ == "__main__":
