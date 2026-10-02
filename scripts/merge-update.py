@@ -21,6 +21,29 @@ def normalize_package(text):
     return text
 
 
+def require_server_merge_guard(repo):
+    """Refuse auto-merge unless GitHub atomically enforces the validated base."""
+    rulesets = api(f"repos/{repo}/rulesets")
+    for summary in rulesets:
+        if summary["name"] != "Validated main updates":
+            continue
+        rule = api(f"repos/{repo}/rulesets/{summary['id']}")
+        refs = rule.get("conditions", {}).get("ref_name", {})
+        if (rule.get("enforcement") != "active" or rule.get("target") != "branch"
+                or rule.get("bypass_actors") != []
+                or refs.get("include") != ["refs/heads/main"] or refs.get("exclude") != []):
+            continue
+        for check in rule.get("rules", []):
+            if check["type"] != "required_status_checks":
+                continue
+            params = check["parameters"]
+            checks = {(c["context"], c.get("integration_id")) for c in params["required_status_checks"]}
+            required = {(s, 15368) for s in ("x86_64-linux", "aarch64-linux", "aarch64-darwin")}
+            if params.get("strict_required_status_checks_policy") is True and required <= checks:
+                return
+    raise RuntimeError("Missing strict, non-bypassable GitHub merge checks on main")
+
+
 def main():
     repo = os.environ["GITHUB_REPOSITORY"]
     number = os.environ["UPDATE_PR"]
@@ -34,6 +57,7 @@ def main():
         raise RuntimeError("PR does not match the validated bot update")
     if api(f"repos/{repo}/commits/main")["sha"] != base:
         raise RuntimeError("Main changed during validation; refusing stale candidate")
+    require_server_merge_guard(repo)
     commit = api(f"repos/{repo}/commits/{sha}")
     if (not commit["commit"]["verification"]["verified"]
             or commit["author"]["login"] != "github-actions[bot]"

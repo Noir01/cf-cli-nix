@@ -3,6 +3,8 @@ name: Update cf
 on:
   schedule:
     - cron: '17 * * * *'
+  push:
+    branches: [ci/automatic-updates]
   workflow_dispatch:
     inputs:
       test_version:
@@ -35,6 +37,11 @@ jobs:
         with:
           persist-credentials: false
       - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
+      - name: Verify server-side merge protection
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -c 'import os, runpy; runpy.run_path("scripts/merge-update.py")["require_server_merge_guard"](os.environ["GITHUB_REPOSITORY"])'
       - name: Use pinned Node and npm
         run: |
           NODE=$(nix build --impure --no-link --print-out-paths --expr 'let f = builtins.getFlake (toString ./.); p = import f.inputs.nixpkgs { system = builtins.currentSystem; }; in p.nodejs_22')
@@ -43,7 +50,7 @@ jobs:
         id: update
         env:
           GH_TOKEN: ${{ github.token }}
-          TEST_VERSION: ${{ inputs.test_version }}
+          TEST_VERSION: ${{ github.event_name == 'push' && '1.0.0-beta.11' || inputs.test_version }}
         run: |
           if [ -n "$TEST_VERSION" ]; then
             python3 scripts/prepare-update.py --test-version "$TEST_VERSION"
@@ -65,6 +72,9 @@ jobs:
           - runner: macos-15
             system: aarch64-darwin
     name: Validate update (${{ matrix.system }})
+    permissions:
+      contents: read
+      checks: write
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
@@ -77,6 +87,18 @@ jobs:
       - run: nix build .#cf-cli --print-build-logs
       - run: python3 scripts/smoke-test.py result
       - run: nix run . -- --version
+      - name: Publish required check on exact candidate SHA
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ needs.prepare.outputs.sha }}
+          CHECK_NAME: ${{ matrix.system }}
+          CONCLUSION: ${{ job.status }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name="$CHECK_NAME" -f head_sha="$CANDIDATE_SHA" \
+            -f status=completed -f conclusion="$CONCLUSION" \
+            -f details_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
   merge:
     needs: [prepare, validate]
