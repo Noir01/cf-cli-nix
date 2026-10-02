@@ -58,7 +58,19 @@ GitHub's active **Validated main updates** ruleset requires all three platform c
 
 To exercise the pipeline without merging, manually run the **Update cf** workflow with `test_version` set to a different published version. Leave it blank for a normal latest-version check. Failed candidates remain open for inspection; a later release can generate a new candidate.
 
-Binary caching and version tags are not enabled yet.
+## Version tags
+
+After all three platform builds and smoke tests pass on `main`, CI publishes a fixed tag such as `v1.0.0-beta.12` on the exact tested commit. Existing tags are never moved: reruns on the same commit are no-ops; attempts to reuse a version on another commit fail rather than overwrite history. These are lightweight Git refs pointing to signed commits, not separately signed annotated tags or GitHub Release pages. No moving `latest` or major-version tags are published.
+
+Once a tag exists, select it explicitly:
+
+```sh
+nix run github:Noir01/cf-cli-nix/v1.0.0-beta.12 -- --version
+# Flake input:
+# inputs.cf-cli-nix.url = "github:Noir01/cf-cli-nix/v1.0.0-beta.12";
+```
+
+Bot merges explicitly dispatch the main build workflow because `GITHUB_TOKEN` merges do not trigger normal push workflows. Tag publication waits for that merged commit's builds, rather than tagging the pre-merge PR candidate. Binary caching is not enabled yet.
 
 ## Build and test
 

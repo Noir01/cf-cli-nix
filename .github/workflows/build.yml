@@ -45,3 +45,21 @@ jobs:
         run: |
           nix run . -- --version
           nix run .#cloudflare -- --version
+
+  tag:
+    needs: build
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish fixed tag for the exact tested commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/tag-version.py --repo "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA"
