@@ -67,6 +67,32 @@ class MergeGuards(unittest.TestCase):
                 merge.main()
             write.assert_not_called()
 
+    def test_pending_merge_fails_before_dispatch(self):
+        import io
+        pr = {"state": "open", "draft": False, "user": {"login": "github-actions[bot]"},
+              "head": {"ref": "automation/cf-1.0.0", "sha": "sha", "repo": {"full_name": "owner/repo"}},
+              "base": {"ref": "main"}}
+        package = '  version = "1.0.0";\n    hash = "hash";\n  npmDepsHash = "deps";'
+        import base64
+        def read(endpoint):
+            if endpoint.endswith("/pulls/1"):
+                return dict(pr, merged=False)
+            if endpoint.endswith("/commits/main"):
+                return {"sha": "base"}
+            if endpoint.endswith("/commits/sha"):
+                return {"commit": {"verification": {"verified": True}},
+                        "author": {"login": "github-actions[bot]"}, "parents": [{"sha": "base"}]}
+            if endpoint.endswith("/files"):
+                return [{"filename": f} for f in ["package.nix", "package-lock.json"]]
+            if "/contents/" in endpoint:
+                text = package if "package.nix" in endpoint else '{"version":"1.0.0"}'
+                return {"content": base64.b64encode(text.encode()).decode()}
+            raise AssertionError(endpoint)
+        with patch.dict(merge.os.environ, {"GITHUB_REPOSITORY": "owner/repo", "UPDATE_PR": "1", "UPDATE_SHA": "sha", "UPDATE_BASE": "base"}), patch.object(merge, "api", side_effect=read), patch.object(merge, "require_server_merge_guard"), patch.object(merge.urllib.request, "urlopen", return_value=io.BytesIO(b'{"version":"1.0.0"}')), patch.object(merge.subprocess, "run") as write:
+            with self.assertRaisesRegex(RuntimeError, "not merged"):
+                merge.main()
+            self.assertNotIn("--auto", write.call_args.args[0])
+
     def test_changed_main_cannot_merge(self):
         pr = {"state": "open", "draft": False, "user": {"login": "github-actions[bot]"},
               "head": {"ref": "automation/cf-1.0.0", "sha": "sha", "repo": {"full_name": "owner/repo"}},
