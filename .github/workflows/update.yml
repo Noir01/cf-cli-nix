@@ -3,8 +3,6 @@ name: Update cf
 on:
   schedule:
     - cron: '17 * * * *'
-  push:
-    branches: [ci/automatic-updates]
   workflow_dispatch:
     inputs:
       test_version:
@@ -50,7 +48,7 @@ jobs:
         id: update
         env:
           GH_TOKEN: ${{ github.token }}
-          TEST_VERSION: ${{ github.event_name == 'push' && '1.0.0-beta.11' || inputs.test_version }}
+          TEST_VERSION: ${{ inputs.test_version }}
         run: |
           if [ -n "$TEST_VERSION" ]; then
             python3 scripts/prepare-update.py --test-version "$TEST_VERSION"
