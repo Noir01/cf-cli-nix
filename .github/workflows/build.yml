@@ -33,6 +33,8 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+      - name: Test automation merge guards
+        run: python3 -m unittest discover -s tests -v
       - name: Evaluate flake outputs
         run: nix flake check --all-systems --no-build
       - name: Build package

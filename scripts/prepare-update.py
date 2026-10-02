@@ -48,12 +48,11 @@ def main():
     if (not args.test_version and
             subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, cwd=ROOT).strip() != base):
         raise RuntimeError("Checkout is not the current main revision")
+    existing = []
     if not args.test_version:
         existing = gh(f"repos/{repo}/pulls?state=open&base=main&per_page=100")
         existing = [p for p in existing if p["head"]["ref"].startswith("automation/cf-")
                     and p["user"]["login"] == "github-actions[bot]"]
-        if existing:
-            raise RuntimeError("An update PR is already open; resolve it before generating another")
     command = [sys.executable, str(ROOT / "scripts/update.py")]
     if args.test_version:
         command += ["--version", args.test_version]
@@ -67,6 +66,16 @@ def main():
     version = json.loads((ROOT / "package-lock.json").read_text())["version"]
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?", version):
         raise RuntimeError("Invalid version")
+    for previous in existing:
+        previous_sha = previous["head"]["sha"]
+        lock = gh(f"repos/{repo}/contents/package-lock.json?ref={previous_sha}")
+        old_version = json.loads(base64.b64decode(lock["content"]))["version"]
+        parent = gh(f"repos/{repo}/commits/{previous_sha}")["parents"]
+        if old_version == version and [p["sha"] for p in parent] == [base]:
+            output(changed="true", sha=previous_sha, base=base, pr=str(previous["number"]),
+                   branch=previous["head"]["ref"])
+            print("Revalidating existing update PR")
+            return
     prefix = "automation/test-cf-" if args.test_version else "automation/cf-"
     branch = prefix + version + "-" + os.environ["GITHUB_RUN_ID"]
     gh(f"repos/{repo}/git/refs", {"ref": "refs/heads/" + branch, "sha": base})

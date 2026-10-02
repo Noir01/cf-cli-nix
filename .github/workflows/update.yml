@@ -9,8 +9,6 @@ on:
         description: 'Optional version for a draft test PR (never merged)'
         type: string
         required: false
-  push:
-    branches: [ci/automatic-updates]
 
 permissions:
   contents: read
@@ -45,7 +43,7 @@ jobs:
         id: update
         env:
           GH_TOKEN: ${{ github.token }}
-          TEST_VERSION: ${{ github.event_name == 'push' && '1.0.0-beta.11' || inputs.test_version }}
+          TEST_VERSION: ${{ inputs.test_version }}
         run: |
           if [ -n "$TEST_VERSION" ]; then
             python3 scripts/prepare-update.py --test-version "$TEST_VERSION"

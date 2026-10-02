@@ -50,7 +50,13 @@ python3 scripts/smoke-test.py result
 
 Check mode returns 0 when current, 1 when an update is available, and 2 on errors. It does not edit files. The updater verifies npm's tarball integrity, resolves runtime dependencies with install scripts disabled, and computes the dependency hash using the prefetcher from our pinned nixpkgs. It updates `package.nix` and `package-lock.json` only after fetching and hashing succeeds. Package validation is a separate required step.
 
-Scheduled updates, automatic merges, binary caching, and version tags are not enabled yet.
+The hourly update workflow follows npm `latest`, creates a GitHub-signed bot PR, and explicitly builds and smoke-tests that exact candidate on all supported platforms. This does not rely on `GITHUB_TOKEN`-created PRs triggering normal PR workflows. Matching open candidates are revalidated on subsequent runs.
+
+Automation is paused until the maintainer explicitly enables repository variable `AUTO_UPDATE_ENABLED=true` and repository auto-merge. When enabled, only bot-owned version/hash/lockfile updates from an unchanged main revision may merge after all validation jobs succeed. Test PRs are drafts and never merge. GitHub supplies the bot commit signature; no personal or dedicated signing key is stored in Actions.
+
+To exercise the pipeline without merging, manually run the **Update cf** workflow with `test_version` set to a different published version. Leave it blank for a normal latest-version check. Failed candidates remain open for inspection; a later release can generate a new candidate.
+
+Binary caching and version tags are not enabled yet.
 
 ## Build and test
 
