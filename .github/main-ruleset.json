@@ -1,0 +1,22 @@
+{
+  "name": "Validated main updates",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {"include": ["refs/heads/main"], "exclude": []}
+  },
+  "rules": [
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          {"context": "x86_64-linux", "integration_id": 15368},
+          {"context": "aarch64-linux", "integration_id": 15368},
+          {"context": "aarch64-darwin", "integration_id": 15368}
+        ]
+      }
+    }
+  ]
+}
