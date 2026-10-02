@@ -5,8 +5,8 @@
 
   outputs = { self, nixpkgs }:
     let
-      # Add platforms only after build and smoke tests pass in CI.
-      systems = [ "x86_64-linux" ];
+      # These platforms passed native build and smoke tests in GitHub Actions.
+      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
       overlay = final: prev: {
         cf-cli = final.callPackage ./package.nix { };
