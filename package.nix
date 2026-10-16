@@ -2,16 +2,16 @@
 
 buildNpmPackage rec {
   pname = "cf-cli";
-  version = "1.0.0-beta.17";
+  version = "1.0.0-beta.18";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/cf/-/cf-${version}.tgz";
-    hash = "sha256-BNo+x+Mnh8RUmf0pOWnPubsTkDXSEFp5lGh7lLcT3Kg=";
+    hash = "sha256-90HOzNeviKk4mOViPzYXg0EvNQ0wYdXrs0Y4cMjbzvY=";
   };
 
   sourceRoot = "package";
   nodejs = nodejs_22;
-  npmDepsHash = "sha256-K07dDOdJ2FGnYDTWk9m0CpKryB9Ndl7NC4RkYCFCyH0=";
+  npmDepsHash = "sha256-FkkmU3VO1GiNwEubJ9/rVWuj7ZiPowMm05MjvsXdA/c=";
   npmFlags = [ "--ignore-scripts" ];
   dontNpmBuild = true;
 
