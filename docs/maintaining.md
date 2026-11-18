@@ -23,7 +23,7 @@ Check mode exits 0 when current, 1 when an update is available, and 2 on errors;
 
 ## Automatic updates
 
-`.github/workflows/update.yml` checks npm `latest` hourly. `AUTO_UPDATE_ENABLED=true` and repository auto-merge are enabled. Routine merge authorization covers only bot-owned version/hash/lockfile updates; code and workflow changes still require maintainer approval.
+`.github/workflows/update.yml` checks npm `latest` daily at 09:17 UTC. `AUTO_UPDATE_ENABLED=true` and repository auto-merge are enabled. Routine merge authorization covers only bot-owned version/hash/lockfile updates; code and workflow changes still require maintainer approval.
 
 Candidates are created through GitHub's signing API, then explicitly built and smoke-tested on all three platforms. Workflow-token-created PRs do not normally trigger PR CI, so validation publishes required checks directly on the candidate SHA. Matching open candidates are revalidated on subsequent runs. Failed candidates remain open for inspection.
 
