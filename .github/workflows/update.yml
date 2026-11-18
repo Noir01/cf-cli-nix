@@ -2,7 +2,7 @@ name: Update cf
 
 on:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '17 9 * * *'
   workflow_dispatch:
     inputs:
       test_version:

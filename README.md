@@ -1,6 +1,6 @@
 # cf-cli-nix
 
-Nix flake for [Cloudflare's `cf` CLI](https://github.com/cloudflare/cf), with hourly upstream checks, automatic tested updates, and [Cachix binaries](https://app.cachix.org/cache/cf-cli). Includes Node.js 22; no separate npm installation needed.
+Nix flake for [Cloudflare's `cf` CLI](https://github.com/cloudflare/cf), with daily upstream checks, automatic tested updates, and [Cachix binaries](https://app.cachix.org/cache/cf-cli). Includes Node.js 22; no separate npm installation needed.
 
 Supports **Linux x86_64 / ARM64** and **Apple Silicon macOS**. The upstream CLI is in beta.
 
@@ -68,7 +68,7 @@ An overlay is also available: `inputs.cf-cli-nix.overlays.default` provides `pkg
 
 ## Updates and pinning
 
-Hourly checks follow npm's `latest` tag, including beta releases. Version updates merge automatically only after builds and smoke tests pass on all three platforms. Main builds are cached and new versions receive fixed Git tags. Failed candidates stay unmerged; GitHub scheduling and validation can delay updates.
+Daily checks follow npm's `latest` tag, including beta releases. Version updates merge automatically only after builds and smoke tests pass on all three platforms. Main builds are cached and new versions receive fixed Git tags. Failed candidates stay unmerged; GitHub scheduling and validation can delay updates.
 
 To select a specific release:
 
